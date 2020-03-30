@@ -32,7 +32,7 @@ namespace uPNP
             Console.WriteLine("--------------------");
             Console.WriteLine("Discover Finished");
             Console.ReadKey();
-
+            　
         }
   
     }
