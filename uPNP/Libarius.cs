@@ -53,45 +53,55 @@ namespace Libarius.Network
         /// <returns>Returns true on success and false if no answer was received.</returns>
         public static bool Discover()
         {
-            var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
-            s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
-            var req = "M-SEARCH * HTTP/1.1\r\n" +
-                      "HOST: 239.255.255.250:1900\r\n" +
-                      "ST:upnp:rootdevice\r\n" +
-                      "MAN:\"ssdp:discover\"\r\n" +
-                      "MX:3\r\n\r\n";
-            var data = Encoding.ASCII.GetBytes(req);
-            var ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
-            var buffer = new byte[0x1000];
-
-            var start = DateTime.Now;
-
-            do
+            try
             {
-                s.SendTo(data, ipe);
-                s.SendTo(data, ipe);
-                s.SendTo(data, ipe);
+                var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
+                s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 3000);
+                var req = "M-SEARCH * HTTP/1.1\r\n" +
+                          "HOST: 239.255.255.250:1900\r\n" +
+                          "ST:upnp:rootdevice\r\n" +
+                          "MAN:\"ssdp:discover\"\r\n" +
+                          "MX:3\r\n\r\n";
+                var data = Encoding.ASCII.GetBytes(req);
+                var ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
+                var buffer = new byte[0x1000];
 
-                var length = 0;
+                var start = DateTime.Now;
+
                 do
                 {
-                    length = s.Receive(buffer);
+                    s.SendTo(data, ipe);
+                    s.SendTo(data, ipe);
+                    s.SendTo(data, ipe);
 
-                    var resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
-                    if (resp.Contains("upnp:rootdevice"))
+                    var length = 0;
+                    do
                     {
-                        resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
-                        resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-                        if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                        length = s.Receive(buffer);
+
+                        var resp = Encoding.ASCII.GetString(buffer, 0, length).ToLower();
+                        if (resp.Contains("upnp:rootdevice"))
                         {
-                            _descUrl = resp;
-                            return true;
+                            resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
+                            resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
+                            if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                            {
+                                _descUrl = resp;
+                                return true;
+                            }
                         }
-                    }
-                } while (length > 0);
-            } while (start.Subtract(DateTime.Now) < _timeout);
-            return false;
+                    } while (length > 0);
+                } while (start.Subtract(DateTime.Now) < _timeout);
+                return false;
+            }
+            catch (Exception)
+            {
+
+                return false;
+            }
+
+            
         }
 
         private static string GetServiceUrl(string resp)
