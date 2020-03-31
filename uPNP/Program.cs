@@ -15,7 +15,9 @@ namespace uPNP
 
         static async System.Threading.Tasks.Task Main(string[] args)
         {
-            Console.WriteLine("Discover started");
+            Console.WriteLine("© Mohammed Tanbir Hosssain \n");
+           
+            Console.WriteLine("Discover started ");
             Console.WriteLine($"N_Port:{_neoTcpPort}");
             Console.WriteLine($"O_Port:{_openTcpPort}");
             Console.WriteLine("-------------------");
@@ -47,7 +49,7 @@ namespace uPNP
                 {
                     Console.WriteLine($"Failed : Sorry _0_  port {_openTcpPort} ");
                 }
-                Console.WriteLine("-----------------------------");
+               
             }
             catch (Exception ex)
             {
@@ -57,7 +59,7 @@ namespace uPNP
                 Console.WriteLine("Dont't worry , one day you will find your desire solution.");
             }
             Console.ResetColor();
-            Console.WriteLine("--------------------");
+            Console.WriteLine("-----------------------------");
             Console.WriteLine("Discover Finished");
             Console.ReadKey();
 
@@ -137,7 +139,9 @@ namespace uPNP
             }
             catch (Exception e)
             {
+              
                 Console.WriteLine(e.Message);
+                return false;
             }
             return true;
         }
@@ -166,3 +170,4 @@ namespace uPNP
 
 
 //dotnet publish -c Release -r linux-x64 /p:PublishSingleFile=true
+//https://qiita.com/kaysquare1231/items/700be91a1f4d410c1d5e
