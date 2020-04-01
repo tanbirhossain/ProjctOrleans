@@ -12,6 +12,7 @@ namespace uPNP
     {
         public static int _neoTcpPort = 1701;
         public static int _openTcpPort = 1702;
+        public static int _localTcpPort = 1703;
 
         static async System.Threading.Tasks.Task Main(string[] args)
         {
@@ -20,7 +21,8 @@ namespace uPNP
             Console.WriteLine("Discover started ");
             Console.WriteLine($"N_Port:{_neoTcpPort}");
             Console.WriteLine($"O_Port:{_openTcpPort}");
-            Console.WriteLine("-------------------");
+            Console.WriteLine($"Local_Port:{_localTcpPort}");
+            Console.WriteLine("-----------------------------");
 
             try
             {
@@ -49,7 +51,17 @@ namespace uPNP
                 {
                     Console.WriteLine($"Failed : Sorry _0_  port {_openTcpPort} ");
                 }
-               
+                Console.WriteLine("-----------------------------");
+                Console.WriteLine("Looking for local discovering");
+                if ( DiscoverLocal())
+                {
+                    Console.WriteLine($"You _local_port: { _localTcpPort}  listing. please go to https://canyouseeme.org/ and confirm.");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed : Sorry _0_  port {_localTcpPort} ");
+                }
+
             }
             catch (Exception ex)
             {
@@ -76,6 +88,47 @@ namespace uPNP
                 return true;
             }
             return false;
+        }
+        private static bool DeleteNeoPort()
+        {
+            UPnP.DeleteForwardingRule(_neoTcpPort, ProtocolType.Tcp);
+            return true;
+        }  
+        private static async System.Threading.Tasks.Task<bool> DeleteOpenPortAsync()
+        {
+            var discoverer = new NatDiscoverer();
+
+            // we don't want to discover forever, just 5 senconds or less
+            var cts = new CancellationTokenSource(5000);
+
+            // we are only interested in Upnp NATs because PMP protocol doesn't allow to list mappings
+            var device = await discoverer.DiscoverDeviceAsync(PortMapper.Upnp, cts);
+            foreach (var mapping in await device.GetAllMappingsAsync())
+            {
+                // in this example we want to delete the "Skype" mappings
+                if (mapping.Description.Contains("OPEN"))
+                {
+                    Console.WriteLine("Deleting {0}", mapping);
+                    await device.DeletePortMapAsync(mapping);
+                }
+            }
+
+            Console.WriteLine("Show all mapping");
+            foreach (var mapping in await device.GetAllMappingsAsync())
+            {
+                Console.WriteLine(mapping);
+            }
+
+
+            return true;
+        }
+
+        private static bool DiscoverLocal()
+        {
+          
+                StartListener_Local();
+                return true;
+         
         }
 
         private static async System.Threading.Tasks.Task<bool> DiscoverOpenNatAsync()
@@ -106,11 +159,6 @@ namespace uPNP
                         await device.DeletePortMapAsync(mapping);
                     }
                 }
-
-
-
-
-
                 // display the NAT's IP address
                 Console.WriteLine("The external IP Address is: {0} ", await device.GetExternalIPAsync());
 
@@ -122,7 +170,8 @@ namespace uPNP
             }
             catch (NatDeviceNotFoundException e)
             {
-                Console.WriteLine("Open.NAT wasn't able to find an Upnp device ;(");
+                Console.WriteLine("wasn't able to find an Upnp device ;(");
+                return false;
             }
             catch (MappingException me)
             {
@@ -134,6 +183,7 @@ namespace uPNP
                         break;
                     case 728:
                         Console.WriteLine("The router's mapping table is full.");
+                        return true;
                         break;
                 }
             }
@@ -160,6 +210,15 @@ namespace uPNP
         {
             // configure a TCP socket listening on port 1602
             var endPoint = new IPEndPoint(IPAddress.Any, _openTcpPort);
+            var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            socket.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
+            socket.Bind(endPoint);
+            socket.Listen(4);
+        } 
+        private static void StartListener_Local()
+        {
+            // configure a TCP socket listening on port 1602
+            var endPoint = new IPEndPoint(IPAddress.Any, _localTcpPort);
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             socket.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
             socket.Bind(endPoint);
