@@ -16,8 +16,9 @@ namespace uPNP
 
         static async System.Threading.Tasks.Task Main(string[] args)
         {
+            bool isOpenPort = false;
             Console.WriteLine("© Mohammed Tanbir Hosssain \n");
-           
+
             Console.WriteLine("Discover started ");
             Console.WriteLine($"N_Port:{_neoTcpPort}");
             Console.WriteLine($"O_Port:{_openTcpPort}");
@@ -35,6 +36,9 @@ namespace uPNP
                 Console.WriteLine("Looking for N style discovering");
                 if (DiscoverNeo())
                 {
+
+                    StartListener_Neo();
+                    isOpenPort = true;
                     Console.WriteLine($"You _N_port: {_neoTcpPort}  listing. please go to https://canyouseeme.org/ and confirm.");
                 }
                 else
@@ -45,6 +49,9 @@ namespace uPNP
                 Console.WriteLine("Looking for O style discovering");
                 if (await DiscoverOpenNatAsync())
                 {
+                    //listener
+                    StartListener_Open();
+                    isOpenPort = true;
                     Console.WriteLine($"You _O_port: { _openTcpPort}  listing. please go to https://canyouseeme.org/ and confirm.");
                 }
                 else
@@ -53,14 +60,46 @@ namespace uPNP
                 }
                 Console.WriteLine("-----------------------------");
                 Console.WriteLine("Looking for local discovering");
-                if ( DiscoverLocal())
+                if (DiscoverLocal())
                 {
-                    Console.WriteLine($"You _local_port: { _localTcpPort}  listing. please go to https://canyouseeme.org/ and confirm.");
+                    StartListener_Local();
+                    Console.WriteLine($"You _L_port: { _localTcpPort}  listing. please go to https://canyouseeme.org/ and confirm.");
                 }
                 else
                 {
-                    Console.WriteLine($"Failed : Sorry _0_  port {_localTcpPort} ");
+                    Console.WriteLine($"Failed : Sorry _L_  port {_localTcpPort} ");
                 }
+
+                Console.WriteLine("-----------------------------");
+                //Delete port 
+                if (isOpenPort)
+                {
+                    Console.WriteLine("Are you want to delete your mapping? ");
+                    Console.WriteLine("Type 'Y' OR 'N'");
+                    var ans = Console.ReadLine();
+                    if (ans.ToLower() == "y")
+                    {
+                        try {await DeleteOpenPortAsync(); } catch (Exception) { }
+                        try { DeleteNeoPort(); } catch (Exception) { }
+                    }
+
+                }
+                Console.WriteLine(" UPnp Mapping List");
+                Console.WriteLine("-----------------------------");
+                var discoverer = new NatDiscoverer();
+
+                // we don't want to discover forever, just 5 senconds or less
+                var cts = new CancellationTokenSource(5000);
+
+                // we are only interested in Upnp NATs because PMP protocol doesn't allow to list mappings
+                var device = await discoverer.DiscoverDeviceAsync(PortMapper.Upnp, cts);
+
+                foreach (var mapping in await device.GetAllMappingsAsync())
+                {
+                    Console.WriteLine(mapping);
+                }
+                Console.WriteLine("-----------------------------");
+
 
             }
             catch (Exception ex)
@@ -84,7 +123,7 @@ namespace uPNP
             {
                 Console.WriteLine("You have an UPnP-enabled router and your IP is: " + UPnP.ExternalIp);
                 UPnP.ForwardPort(_neoTcpPort, ProtocolType.Tcp, "NEO Tcp");
-                StartListener_Neo();
+
                 return true;
             }
             return false;
@@ -93,7 +132,7 @@ namespace uPNP
         {
             UPnP.DeleteForwardingRule(_neoTcpPort, ProtocolType.Tcp);
             return true;
-        }  
+        }
         private static async System.Threading.Tasks.Task<bool> DeleteOpenPortAsync()
         {
             var discoverer = new NatDiscoverer();
@@ -112,23 +151,15 @@ namespace uPNP
                     await device.DeletePortMapAsync(mapping);
                 }
             }
-
-            Console.WriteLine("Show all mapping");
-            foreach (var mapping in await device.GetAllMappingsAsync())
-            {
-                Console.WriteLine(mapping);
-            }
-
-
             return true;
         }
 
         private static bool DiscoverLocal()
         {
-          
-                StartListener_Local();
-                return true;
-         
+
+
+            return true;
+
         }
 
         private static async System.Threading.Tasks.Task<bool> DiscoverOpenNatAsync()
@@ -165,8 +196,7 @@ namespace uPNP
                 // create a new mapping in the router [external_ip:1702 -> host_machine:1602]
                 await device.CreatePortMapAsync(new Mapping(Protocol.Tcp, _openTcpPort, _openTcpPort, "Discover For OPEN"));
 
-                //listener
-                StartListener_Open();
+
             }
             catch (NatDeviceNotFoundException e)
             {
@@ -189,7 +219,7 @@ namespace uPNP
             }
             catch (Exception e)
             {
-              
+
                 Console.WriteLine(e.Message);
                 return false;
             }
@@ -214,7 +244,7 @@ namespace uPNP
             socket.SetIPProtectionLevel(IPProtectionLevel.Unrestricted);
             socket.Bind(endPoint);
             socket.Listen(4);
-        } 
+        }
         private static void StartListener_Local()
         {
             // configure a TCP socket listening on port 1602
