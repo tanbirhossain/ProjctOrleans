@@ -83,6 +83,7 @@ namespace uPNP
                         try { DeleteNeoPort(); } catch (Exception) { }
                     }
 
+
                     Console.WriteLine(" UPnp Mapping List");
                     Console.WriteLine("-----------------------------");
                     var discoverer = new NatDiscoverer();
@@ -99,8 +100,8 @@ namespace uPNP
                     }
                     Console.WriteLine("-----------------------------");
 
-                }
 
+                }
 
             }
             catch (Exception ex)
