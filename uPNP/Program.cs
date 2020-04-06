@@ -83,22 +83,23 @@ namespace uPNP
                         try { DeleteNeoPort(); } catch (Exception) { }
                     }
 
+                    Console.WriteLine(" UPnp Mapping List");
+                    Console.WriteLine("-----------------------------");
+                    var discoverer = new NatDiscoverer();
+
+                    // we don't want to discover forever, just 5 senconds or less
+                    var cts = new CancellationTokenSource(5000);
+
+                    // we are only interested in Upnp NATs because PMP protocol doesn't allow to list mappings
+                    var device = await discoverer.DiscoverDeviceAsync(PortMapper.Upnp, cts);
+
+                    foreach (var mapping in await device.GetAllMappingsAsync())
+                    {
+                        Console.WriteLine(mapping);
+                    }
+                    Console.WriteLine("-----------------------------");
+
                 }
-                Console.WriteLine(" UPnp Mapping List");
-                Console.WriteLine("-----------------------------");
-                var discoverer = new NatDiscoverer();
-
-                // we don't want to discover forever, just 5 senconds or less
-                var cts = new CancellationTokenSource(5000);
-
-                // we are only interested in Upnp NATs because PMP protocol doesn't allow to list mappings
-                var device = await discoverer.DiscoverDeviceAsync(PortMapper.Upnp, cts);
-
-                foreach (var mapping in await device.GetAllMappingsAsync())
-                {
-                    Console.WriteLine(mapping);
-                }
-                Console.WriteLine("-----------------------------");
 
 
             }
